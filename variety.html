@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crave Cart Menu</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Outfit', sans-serif; background: #f8f9fc; color: #333; overflow-x: hidden; }
+
+    /* Header */
+    .header {
+        position: sticky; top: 0; z-index: 100;
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 15px 5%; background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px); box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+    .logo { font-size: 1.5rem; font-weight: 700; color: #FF4757; }
+    .search-bar { 
+        flex: 0 1 400px; position: relative; 
+    }
+    .search-bar input {
+        width: 100%; padding: 10px 15px; border-radius: 20px;
+        border: 1px solid #ddd; font-family: inherit; outline: none; transition: 0.3s;
+    }
+    .search-bar input:focus { border-color: #FF4757; box-shadow: 0 0 5px rgba(255,71,87,0.3); }
+    .cart-btn {
+        background: #FF4757; color: white; padding: 10px 20px; border-radius: 30px;
+        border: none; cursor: pointer; font-weight: 600; font-family: inherit;
+        display: flex; gap: 8px; align-items: center; transition: 0.3s;
+    }
+    .cart-btn:hover { background: #ff2e43; transform: scale(1.05); }
+    .cart-badge {
+        background: white; color: #FF4757; border-radius: 50%;
+        padding: 2px 8px; font-size: 0.9em; font-weight: 700;
+    }
+
+    /* Filters */
+    .filters {
+        display: flex; gap: 10px; overflow-x: auto; padding: 20px 5%;
+        scrollbar-width: none; border-bottom: 1px solid #eee;
+        background: white;
+    }
+    .filters::-webkit-scrollbar { display: none; }
+    .filter-btn {
+        padding: 8px 18px; border: 1px solid #ddd; background: white;
+        border-radius: 20px; font-family: inherit; font-size: 0.95rem; font-weight: 600;
+        cursor: pointer; white-space: nowrap; transition: 0.3s; color: #555;
+    }
+    .filter-btn:hover, .filter-btn.active {
+        background: #FF4757; border-color: #FF4757; color: white;
+    }
+
+    /* Menu Grid */
+    .menu-container {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 25px; padding: 30px 5%;
+    }
+    .item-card {
+        background: white; border-radius: 20px; overflow: hidden;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05); transition: transform 0.3s, box-shadow 0.3s;
+        display: flex; flex-direction: column;
+    }
+    .item-card:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
+    .item-img { width: 100%; height: 180px; object-fit: cover; }
+    .item-content { padding: 20px; display: flex; flex-direction: column; flex: 1; }
+    .item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+    .item-title { font-size: 1.2rem; font-weight: 700; color: #222; margin-right: 10px; }
+    .item-category { 
+        font-size: 0.8rem; background: #ffe4e6; color: #e11d48;
+        padding: 4px 8px; border-radius: 10px; font-weight: 600; white-space: nowrap; 
+    }
+    .item-price { font-size: 1.3rem; font-weight: 700; color: #FF4757; margin-bottom: 15px; }
+    
+    .addons-wrap { margin-bottom: 15px; flex: 1; }
+    .addons-title { font-size: 0.9rem; font-weight: 600; color: #555; margin-bottom: 8px; }
+    .addon-label { 
+        display: flex; align-items: center; gap: 8px; font-size: 0.9rem;
+        color: #666; cursor: pointer; margin-bottom: 5px; 
+    }
+    
+    .add-action { display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-top: auto;}
+    .add-btn {
+        flex: 1; background: #FF4757; color: white; border: none; padding: 10px;
+        border-radius: 12px; font-family: inherit; font-size: 1rem; font-weight: 600;
+        cursor: pointer; transition: 0.3s;
+    }
+    .add-btn:hover { background: #ff2e43; }
+
+    /* Cart Sidebar */
+    .cart-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.4); z-index: 999; opacity: 0;
+        visibility: hidden; transition: 0.3s;
+    }
+    .cart-overlay.show { opacity: 1; visibility: visible; }
+    .cart-sidebar {
+        position: fixed; top: 0; right: -400px; width: 380px; max-width: 100%;
+        height: 100%; background: white; z-index: 1000; box-shadow: -5px 0 25px rgba(0,0,0,0.1);
+        display: flex; flex-direction: column; transition: right 0.3s ease;
+    }
+    .cart-sidebar.open { right: 0; }
+    .cart-header {
+        padding: 20px; border-bottom: 1px solid #eee; display: flex;
+        justify-content: space-between; align-items: center;
+    }
+    .cart-header h2 { font-size: 1.5rem; color: #222; }
+    .close-cart { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #888; }
+    .close-cart:hover { color: #FF4757; }
+    
+    .cart-items-wrap { padding: 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 15px; }
+    .empty-cart { text-align: center; color: #888; margin-top: 50px; font-size: 1.1rem; }
+    
+    .cart-item {
+        display: flex; background: #fdfdfd; border: 1px solid #eee;
+        padding: 15px; border-radius: 15px; align-items: center; gap: 15px;
+    }
+    .cart-item-info { flex: 1; }
+    .cart-item-title { font-weight: 600; font-size: 1rem; color: #222; margin-bottom: 5px; }
+    .cart-item-addons { font-size: 0.8rem; color: #777; margin-bottom: 5px; }
+    .cart-item-price { font-weight: 700; color: #FF4757; }
+    
+    .qty-controls { display: flex; align-items: center; gap: 10px; background: #f0f0f0; border-radius: 10px; padding: 4px; }
+    .qty-btn { background: white; border: none; width: 25px; height: 25px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+    .qty-btn:hover { background: #FF4757; color: white; }
+    .qty-num { font-size: 0.95rem; font-weight: 600; width: 20px; text-align: center; }
+
+    .cart-footer { padding: 20px; border-top: 1px solid #eee; background: #fafafa; }
+    .cart-total { display: flex; justify-content: space-between; font-size: 1.25rem; font-weight: 700; margin-bottom: 15px; color: #222; }
+    .checkout-btn {
+        width: 100%; border: none; background: #FF4757; color: white;
+        padding: 15px; border-radius: 12px; font-size: 1.1rem; font-weight: 700;
+        cursor: pointer; transition: 0.3s;
+    }
+    .checkout-btn:hover { background: #ff2e43; transform: translateY(-2px); }
+
+    @media (max-width: 768px) {
+        .header { flex-direction: column; gap: 15px; }
+        .search-bar { width: 100%; flex: auto; }
+        .cart-sidebar { width: 100%; }
+    }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+    <a href="welcome.html#home" class="logo" style="text-decoration: none; display: flex; align-items: center; gap: 5px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+        Crave Cart
+    </a>
+    <ul class="nav-links" style="list-style: none; display: flex; gap: 20px; align-items: center; margin: 0;">
+        <li><a href="welcome.html#home" style="text-decoration: none; color: #333; font-weight: 600;">Home</a></li>
+        <li><a href="welcome.html#about" style="text-decoration: none; color: #333; font-weight: 600;">About</a></li>
+        <li><a href="welcome.html#crave-list" style="text-decoration: none; color: #333; font-weight: 600;">Crave List</a></li>
+        <li><a href="welcome.html#contact" style="text-decoration: none; color: #333; font-weight: 600;">Contact</a></li>
+    </ul>
+    <div style="display: flex; gap: 15px; align-items: center;">
+        <div class="search-bar" style="margin: 0;">
+            <input type="text" id="searchInput" placeholder="Search for food..." onkeyup="filterMenu()">
+        </div>
+        <button class="cart-btn" onclick="toggleCart()">
+            🛒 Cart <span class="cart-badge" id="cartBadge">0</span>
+        </button>
+    </div>
+</header>
+
+<!-- Filters -->
+<div class="filters" id="filters">
+    <!-- Buttons dynamically added here -->
+</div>
+
+<!-- Menu Grid -->
+<div class="menu-container" id="menu"></div>
+
+<!-- Cart Sidebar Overlay -->
+<div class="cart-overlay" id="cartOverlay" onclick="toggleCart()"></div>
+
+<!-- Cart Sidebar -->
+<aside class="cart-sidebar" id="cartSidebar">
+    <div class="cart-header">
+        <h2>Your Cart</h2>
+        <button class="close-cart" onclick="toggleCart()">&times;</button>
+    </div>
+    <div class="cart-items-wrap" id="cartItems">
+        <div class="empty-cart">Your cart is empty!</div>
+    </div>
+    <div class="cart-footer">
+        <div class="cart-total">
+            <span>Total:</span>
+            <span>₹<span id="totalPrice">0</span></span>
+        </div>
+        <button class="checkout-btn" onclick="proceedToPayment()">Proceed to Payment</button>
+    </div>
+</aside>
+
+<script>
+// Mock Images
+const unsplash = {
+    'Biryani': 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=500&q=80',
+    'Pizza': 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500&q=80',
+    'Burger': 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&q=80',
+    'Sandwich': 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=500&q=80',
+    'Ice Cream': 'https://images.unsplash.com/photo-1551024601-bec78aea704b?w=500&q=80',
+    'Milkshake': 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=500&q=80'
+};
+
+const menuItems = [
+    // Biryani
+    { category: 'Biryani', name: 'Chicken Biryani', price: 250, addons: ['Extra Raita', 'Boiled Egg'], image: unsplash['Biryani'] },
+    { category: 'Biryani', name: 'Mutton Biryani', price: 350, addons: ['Extra Raita', 'Boiled Egg'], image: 'https://images.unsplash.com/photo-1631515243349-e0cb75fb8d3a?w=500&q=80' },
+    { category: 'Biryani', name: 'Veg Biryani', price: 180, addons: ['Paneer Pieces', 'Extra Raita'], image: 'https://images.unsplash.com/photo-1642821373181-696a54913e93?w=500&q=80' },
+    { category: 'Biryani', name: 'Prawn Biryani', price: 320, addons: ['Extra Raita', 'Salad'], image: 'prawn_biryani.png' },
+    { category: 'Biryani', name: 'Egg Biryani', price: 200, addons: ['Extra Salan', 'Raita'], image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=500&q=80' },
+    { category: 'Biryani', name: 'Mushroom Biryani', price: 220, addons: ['Paneer Pieces', 'Extra Raita'], image: 'mushroom_biryani.png' },
+    { category: 'Biryani', name: 'Fish Biryani', price: 340, addons: ['Extra Raita', 'Salad'], image: 'https://images.unsplash.com/photo-1596797038530-2c107229654b?w=500&q=80' },
+    { category: 'Biryani', name: 'Paneer Biryani', price: 240, addons: ['Extra Raita', 'Salan'], image: 'https://images.unsplash.com/photo-1633945274405-b6c8069047b0?w=500&q=80' },
+
+    // North Indian
+    { category: 'North Indian', name: 'Butter Chicken', price: 280, addons: ['Butter Naan', 'Garlic Naan'], image: 'butter_chicken.png' },
+    { category: 'North Indian', name: 'Paneer Butter Masala', price: 220, addons: ['Butter Naan', 'Jeera Rice'], image: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=500&q=80' },
+    { category: 'North Indian', name: 'Dal Makhani', price: 180, addons: ['Butter Naan', 'Jeera Rice'], image: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=500&q=80' },
+    { category: 'North Indian', name: 'Kadai Paneer', price: 230, addons: ['Tandoori Roti', 'Lachha Paratha'], image: 'kadai_paneer.png' },
+    { category: 'North Indian', name: 'Garlic Naan & Curry', price: 250, addons: ['Extra Butter', 'Onion Salad'], image: 'https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=500&q=80' },
+    { category: 'North Indian', name: 'Rajma Chawal', price: 160, addons: ['Papad', 'Pickle'], image: 'https://images.unsplash.com/photo-1628294895950-9805252327bc?w=500&q=80' },
+    { category: 'North Indian', name: 'Samosa Chaat', price: 120, addons: ['Extra Chutney', 'Dahi'], image: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=500&q=80' },
+    { category: 'North Indian', name: 'Chole Bhature', price: 190, addons: ['Onion Salad', 'Pickle'], image: 'chole_bhature.png' },
+    
+    // Chinese
+    { category: 'Chinese', name: 'Hakka Noodles', price: 150, addons: ['Extra Veggies', 'Chilli Sauce'], image: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=500&q=80' },
+    { category: 'Chinese', name: 'Chicken Fried Rice', price: 180, addons: ['Manchurian Gravy', 'Extra Egg'], image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&q=80' },
+    { category: 'Chinese', name: 'Veg Manchurian', price: 160, addons: ['Extra Gravy', 'Schezwan Sauce'], image: 'https://images.unsplash.com/photo-1555126634-323283e090fa?w=500&q=80' },
+    { category: 'Chinese', name: 'Chilli Paneer', price: 190, addons: ['Fried Rice', 'Noodles'], image: 'https://images.unsplash.com/photo-1564834724105-918b73d1b9e0?w=500&q=80' },
+    { category: 'Chinese', name: 'Spring Rolls', price: 140, addons: ['Sweet Chilli Sauce', 'Mayo'], image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=500&q=80' },
+    { category: 'Chinese', name: 'Gobi Manchurian', price: 150, addons: ['Extra Onion', 'Schezwan Sauce'], image: 'https://images.unsplash.com/photo-1617093727343-374698b1b08d?w=500&q=80' },
+    { category: 'Chinese', name: 'Chicken Schezwan Noodles', price: 200, addons: ['Extra Spicy', 'Prawn Crackers'], image: 'https://images.unsplash.com/photo-1552611052-33e04de081de?w=500&q=80' },
+    { category: 'Chinese', name: 'Sweet & Sour Chicken', price: 220, addons: ['Fried Rice', 'Spring Roll'], image: 'https://images.unsplash.com/photo-1525755662778-989d0524087e?w=500&q=80' },
+
+    // Pizza
+    { category: 'Pizza', name: 'Margherita', price: 200, addons: ['Extra Cheese', 'Olives'], image: unsplash['Pizza'] },
+    { category: 'Pizza', name: 'Pepperoni', price: 250, addons: ['Extra Cheese', 'Jalapenos'], image: 'https://images.unsplash.com/photo-1628840042765-356cda07504e?w=500&q=80' },
+    { category: 'Pizza', name: 'Veggie', price: 220, addons: ['Mushrooms', 'Olives'], image: unsplash['Pizza'] },
+    { category: 'Pizza', name: 'Paneer', price: 220, addons: ['Mushrooms', 'Olives'], image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=500&q=80' },
+    { category: 'Pizza', name: 'BBQ Chicken Pizza', price: 280, addons: ['Extra Cheese', 'Jalapenos'], image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500&q=80' },
+    { category: 'Pizza', name: 'Hawaiian Pizza', price: 260, addons: ['Extra Pineapple', 'Bacon'], image: 'https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?w=500&q=80' },
+
+    // Burger
+    { category: 'Burger', name: 'Cheese Burger', price: 120, addons: ['Extra Cheese', 'Bacon'], image: unsplash['Burger'] },
+    { category: 'Burger', name: 'Veggie Burger', price: 100, addons: ['Lettuce', 'Tomato'], image: 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=500&q=80' },
+    { category: 'Burger', name: 'Chicken Burger', price: 150, addons: ['Cheese', 'Mayo'], image: 'https://images.unsplash.com/photo-1561758033-d89a9ad46330?w=500&q=80' },
+    { category: 'Burger', name: 'Double Cheese Burger', price: 180, addons: ['Extra Cheese', 'Bacon'], image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&q=80' },
+    { category: 'Burger', name: 'Fish Burger', price: 170, addons: ['Tartar Sauce', 'Lettuce'], image: 'https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?w=500&q=80' },
+    { category: 'Burger', name: 'Mushroom Swiss Burger', price: 160, addons: ['Caramelized Onions', 'Mushrooms'], image: 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=500&q=80' },
+
+    // Sandwich
+    { category: 'Sandwich', name: 'Club Sandwich', price: 130, addons: ['Cheese', 'Bacon'], image: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=500&q=80' },
+    { category: 'Sandwich', name: 'Veg Sandwich', price: 90, addons: ['Lettuce', 'Tomato'], image: 'https://images.unsplash.com/photo-1540914124281-342587941389?w=500&q=80' },
+    { category: 'Sandwich', name: 'Grilled Cheese Sandwich', price: 110, addons: ['Extra Cheese', 'Jalapenos'], image: 'https://images.unsplash.com/photo-1528736235302-52922df5c122?w=500&q=80' },
+    { category: 'Sandwich', name: 'Chicken Tikka Sandwich', price: 140, addons: ['Mint Chutney', 'Cheese'], image: 'https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=500&q=80' },
+    { category: 'Sandwich', name: 'Bombay Sandwich', price: 100, addons: ['Extra Chutney', 'Sev'], image: 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=500&q=80' },
+    { category: 'Sandwich', name: 'Egg Mayo Sandwich', price: 120, addons: ['Lettuce', 'Tomato'], image: 'https://images.unsplash.com/photo-1482049016688-2d3e1b311543?w=500&q=80' },
+
+    // Ice Cream
+    { category: 'Ice Cream', name: 'Chocolate Ice Cream', price: 80, addons: ['Sprinkles', 'Cherry'], image: 'https://images.unsplash.com/photo-1580915411954-282cb1b0d780?w=500&q=80' },
+    { category: 'Ice Cream', name: 'Pista Ice Cream', price: 50, addons: ['Sprinkles', 'Cherry'], image: 'https://images.unsplash.com/photo-1603736029103-dafad0eb0906?w=500&q=80' },
+    { category: 'Ice Cream', name: 'Vanilla Ice Cream', price: 60, addons: ['Caramel Syrup', 'Choco Chips'], image: 'https://images.unsplash.com/photo-1497034825429-c343d7c6a68f?w=500&q=80' },
+    { category: 'Ice Cream', name: 'Butterscotch Ice Cream', price: 70, addons: ['Nuts', 'Caramel Syrup'], image: 'https://images.unsplash.com/photo-1488900128323-21503983a07e?w=500&q=80' },
+    { category: 'Ice Cream', name: 'Strawberry Ice Cream', price: 70, addons: ['Sprinkles', 'Cherry'], image: 'https://images.unsplash.com/photo-1570197788417-0e82375c9371?w=500&q=80' },
+    { category: 'Ice Cream', name: 'Mango Ice Cream', price: 80, addons: ['Mango Chunks', 'Nuts'], image: 'https://images.unsplash.com/photo-1663904458920-f153c162fa79?w=500&q=80' },
+
+    // Milkshake
+    { category: 'Milkshake', name: 'Strawberry Milkshake', price: 120, addons: ['Whipped Cream', 'Vanilla Syrup'], image: 'https://images.unsplash.com/photo-1579954115545-a95591f28bfc?w=500&q=80' },
+    { category: 'Milkshake', name: 'Chocolate Milkshake', price: 120, addons: ['Whipped Cream', 'Choco Chips'], image: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=500&q=80' },
+    { category: 'Milkshake', name: 'Oreo Milkshake', price: 140, addons: ['Crushed Oreos', 'Chocolate Syrup'], image: 'https://images.unsplash.com/photo-1641665271888-575e46923776?w=500&q=80' },
+    { category: 'Milkshake', name: 'Vanilla Milkshake', price: 100, addons: ['Whipped Cream', 'Sprinkles'], image: 'https://images.unsplash.com/photo-1734747643067-6d4e0f705a00?w=500&q=80' },
+    { category: 'Milkshake', name: 'Cold Coffee', price: 130, addons: ['Vanilla Ice Cream', 'Chocolate Syrup'], image: 'https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?w=500&q=80' },
+    { category: 'Milkshake', name: 'Caramel Milkshake', price: 130, addons: ['Caramel Drizzle', 'Whipped Cream'], image: 'https://images.unsplash.com/photo-1662192511709-e75d67367638?w=500&q=80' }
+];
+
+let cart = [];
+let activeCategory = 'All';
+
+function init() {
+    renderFilters();
+    renderMenu();
+}
+
+function renderFilters() {
+    const filtersDiv = document.getElementById('filters');
+    const categories = ['All', ...new Set(menuItems.map(item => item.category))];
+    
+    filtersDiv.innerHTML = categories.map(cat => 
+        `<button class="filter-btn ${cat === activeCategory ? 'active' : ''}" onclick="setCategory('${cat}')">${cat}</button>`
+    ).join('');
+}
+
+function setCategory(cat) {
+    activeCategory = cat;
+    renderFilters();
+    renderMenu();
+}
+
+function filterMenu() {
+    // triggers on search keyup
+    renderMenu();
+}
+
+function renderMenu() {
+    const menuDiv = document.getElementById('menu');
+    const query = document.getElementById('searchInput').value.toLowerCase();
+    
+    const filtered = menuItems.filter((item) => {
+        const matchesCategory = activeCategory === 'All' || item.category === activeCategory;
+        const matchesSearch = item.name.toLowerCase().includes(query) || item.category.toLowerCase().includes(query);
+        return matchesCategory && matchesSearch;
+    });
+
+    if (filtered.length === 0) {
+        menuDiv.innerHTML = `<h3 style="grid-column: 1/-1; text-align: center; color: #777; margin-top: 40px;">No items found.</h3>`;
+        return;
+    }
+
+    menuDiv.innerHTML = filtered.map((item, id) => {
+        // Need to find original index for cart referencing
+        const origId = menuItems.indexOf(item);
+        const addonsHtml = item.addons.map(a => 
+            `<label class="addon-label"><input type="checkbox" class="addon-${origId}" value="${a}"> ${a}</label>`
+        ).join('');
+        
+        return `
+        <div class="item-card">
+            <img src="${item.image}" class="item-img" alt="${item.name}">
+            <div class="item-content">
+                <div class="item-header">
+                    <div class="item-title">${item.name}</div>
+                    <div class="item-category">${item.category}</div>
+                </div>
+                <div class="item-price">₹${item.price}</div>
+                <div class="addons-wrap">
+                    <div class="addons-title">Add-ons:</div>
+                    ${addonsHtml}
+                </div>
+                <div class="add-action">
+                    <button class="add-btn" onclick="addToCart(${origId})">Add to Cart</button>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function toggleCart() {
+    document.getElementById('cartSidebar').classList.toggle('open');
+    document.getElementById('cartOverlay').classList.toggle('show');
+}
+
+function addToCart(index) {
+    const item = menuItems[index];
+    const checkboxes = document.querySelectorAll(`.addon-${index}:checked`);
+    const selectedAddons = Array.from(checkboxes).map(cb => cb.value);
+    
+    // Check if identical item+addons exists in cart
+    const existing = cart.find(c => c.name === item.name && JSON.stringify(c.addons) === JSON.stringify(selectedAddons));
+    
+    if (existing) {
+        existing.qty += 1;
+    } else {
+        cart.push({ name: item.name, price: item.price, addons: selectedAddons, qty: 1, image: item.image });
+    }
+    
+    updateCart();
+    
+    // Uncheck immediately after adding for better UX
+    checkboxes.forEach(cb => cb.checked = false);
+    
+    // Auto open cart
+    document.getElementById('cartSidebar').classList.add('open');
+    document.getElementById('cartOverlay').classList.add('show');
+}
+
+function changeQty(index, delta) {
+    cart[index].qty += delta;
+    if (cart[index].qty <= 0) {
+        cart.splice(index, 1);
+    }
+    updateCart();
+}
+
+function updateCart() {
+    const cartItemsWrap = document.getElementById('cartItems');
+    const cartBadge = document.getElementById('cartBadge');
+    const totalPriceEl = document.getElementById('totalPrice');
+    
+    let totalQty = 0;
+    let totalPrice = 0;
+
+    cart.forEach(item => {
+        totalQty += item.qty;
+        totalPrice += (item.price * item.qty);
+    });
+
+    cartBadge.innerText = totalQty;
+    totalPriceEl.innerText = totalPrice;
+
+    if (cart.length === 0) {
+        cartItemsWrap.innerHTML = `<div class="empty-cart">Your cart is empty!</div>`;
+        return;
+    }
+
+    cartItemsWrap.innerHTML = cart.map((item, i) => `
+        <div class="cart-item">
+            <img src="${item.image}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 10px;">
+            <div class="cart-item-info">
+                <div class="cart-item-title">${item.name}</div>
+                ${item.addons.length ? `<div class="cart-item-addons">+ ${item.addons.join(', ')}</div>` : ''}
+                <div class="cart-item-price">₹${item.price}</div>
+            </div>
+            <div class="qty-controls">
+                <button class="qty-btn" onclick="changeQty(${i}, -1)">-</button>
+                <div class="qty-num">${item.qty}</div>
+                <button class="qty-btn" onclick="changeQty(${i}, 1)">+</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function proceedToPayment() {
+    if(cart.length === 0){
+        alert("Your cart is empty! Please add some items.");
+    } else {
+        window.location.href = "paymentpage.html";
+    }
+}
+
+init();
+</script>
+
+</body>
+</html>

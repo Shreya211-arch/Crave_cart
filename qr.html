@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scan to Pay | Crave Cart</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+    :root {
+        --primary: #FF4757;
+        --primary-hover: #ff2e43;
+        --primary-light: rgba(255, 71, 87, 0.1);
+        --surface: #ffffff;
+        --text-main: #1a1a2e;
+        --text-muted: #8e8e9a;
+        --border: #f0f0f5;
+        --green: #00b894;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+        font-family: 'Outfit', sans-serif;
+        background:
+            linear-gradient(rgba(10, 10, 20, 0.72), rgba(10, 10, 20, 0.80)),
+            url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1920&q=85') center/cover fixed;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding-top: 90px;
+        padding-bottom: 40px;
+    }
+
+    /* Subtle red glow at top */
+    body::before {
+        content: '';
+        position: fixed;
+        top: -80px; left: 50%;
+        transform: translateX(-50%);
+        width: 500px; height: 300px;
+        background: radial-gradient(ellipse, rgba(255,71,87,0.18) 0%, transparent 70%);
+        pointer-events: none;
+    }
+    body::after {
+        content: '';
+        position: fixed;
+        bottom: -80px; right: -80px;
+        width: 350px; height: 350px;
+        background: radial-gradient(circle, rgba(255,107,53,0.12) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    /* Navbar */
+    .navbar {
+        position: fixed; top: 0; left: 0; width: 100%; height: 70px;
+        padding: 0 5%;
+        display: flex; justify-content: space-between; align-items: center;
+        background: rgba(255,255,255,0.97);
+        backdrop-filter: blur(20px);
+        box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+        z-index: 1000;
+    }
+    .logo {
+        font-size: 1.5rem; font-weight: 700; color: var(--primary);
+        text-decoration: none; display: flex; align-items: center; gap: 8px;
+    }
+    .nav-links { list-style: none; display: flex; gap: 2rem; }
+    .nav-links li a {
+        text-decoration: none; color: var(--text-main);
+        font-weight: 500; font-size: 0.95rem; transition: color 0.3s;
+    }
+    .nav-links li a:hover { color: var(--primary); }
+
+    /* Main card */
+    .qr-card {
+        width: 100%;
+        max-width: 420px;
+        background: var(--surface);
+        border-radius: 28px;
+        box-shadow: 0 30px 80px rgba(0,0,0,0.35);
+        overflow: hidden;
+        position: relative;
+    }
+
+    /* Card top header strip */
+    .card-header {
+        background: linear-gradient(135deg, #FF4757 0%, #ff6b35 100%);
+        padding: 28px 30px 22px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    .card-header::before {
+        content: '';
+        position: absolute; top: -40px; right: -40px;
+        width: 140px; height: 140px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 50%;
+    }
+    .card-header::after {
+        content: '';
+        position: absolute; bottom: -30px; left: -30px;
+        width: 100px; height: 100px;
+        background: rgba(255,255,255,0.07);
+        border-radius: 50%;
+    }
+    .header-icon {
+        width: 52px; height: 52px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 16px;
+        display: flex; align-items: center; justify-content: center;
+        margin: 0 auto 12px;
+        font-size: 1.6rem;
+        backdrop-filter: blur(10px);
+    }
+    .card-header h1 {
+        color: white;
+        font-size: 1.5rem; font-weight: 700;
+        margin-bottom: 4px; position: relative;
+    }
+    .card-header p {
+        color: rgba(255,255,255,0.8);
+        font-size: 0.9rem; position: relative;
+    }
+
+    /* Card body */
+    .card-body { padding: 30px; }
+
+    /* Amount chip */
+    .amount-chip {
+        display: flex; align-items: center; justify-content: space-between;
+        background: #fff8f8;
+        border: 1.5px solid #ffd6da;
+        border-radius: 14px;
+        padding: 14px 18px;
+        margin-bottom: 25px;
+    }
+    .amount-label { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }
+    .amount-value { font-size: 1.4rem; font-weight: 700; color: var(--primary); }
+
+    /* QR box */
+    .qr-wrapper {
+        position: relative;
+        width: 240px;
+        height: 240px;
+        margin: 0 auto 20px;
+    }
+
+    /* Corner decorations */
+    .qr-wrapper::before, .qr-wrapper::after {
+        content: '';
+        position: absolute;
+        width: 24px; height: 24px;
+        border-color: var(--primary);
+        border-style: solid;
+        border-radius: 4px;
+        z-index: 2;
+    }
+    .qr-wrapper::before {
+        top: -3px; left: -3px;
+        border-width: 3px 0 0 3px;
+    }
+    .qr-wrapper::after {
+        bottom: -3px; right: -3px;
+        border-width: 0 3px 3px 0;
+    }
+    .corner-tr, .corner-bl {
+        position: absolute;
+        width: 24px; height: 24px;
+        border-color: var(--primary);
+        border-style: solid;
+        border-radius: 4px;
+        z-index: 2;
+    }
+    .corner-tr { top: -3px; right: -3px; border-width: 3px 3px 0 0; }
+    .corner-bl { bottom: -3px; left: -3px; border-width: 0 0 3px 3px; }
+
+    #qrcode {
+        width: 240px; height: 240px;
+        display: flex; align-items: center; justify-content: center;
+        background: white;
+        border-radius: 16px;
+        padding: 10px;
+        border: 1.5px solid #f0f0f5;
+        overflow: hidden;
+        position: relative;
+    }
+    #qrcode img { border-radius: 8px; }
+
+    /* Scanner line animation */
+    .scanner-line {
+        position: absolute;
+        left: 5px; right: 5px;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, var(--primary), transparent);
+        border-radius: 2px;
+        animation: scan 2.5s linear infinite;
+        z-index: 3;
+        box-shadow: 0 0 8px var(--primary);
+    }
+    @keyframes scan {
+        0%   { top: 10px; opacity: 0; }
+        5%   { opacity: 1; }
+        95%  { opacity: 1; }
+        100% { top: 225px; opacity: 0; }
+    }
+
+    /* Timer */
+    .timer-row {
+        display: flex; align-items: center; justify-content: center;
+        gap: 8px; margin-bottom: 22px;
+    }
+    .timer-badge {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: #f8f9ff;
+        border: 1.5px solid #e8eaf6;
+        border-radius: 30px;
+        padding: 7px 16px;
+        font-size: 0.88rem; font-weight: 600;
+        color: #5c6bc0;
+    }
+    #countdown { font-variant-numeric: tabular-nums; min-width: 38px; }
+    .timer-badge.urgent { background: #fff8f8; border-color: #ffd6da; color: var(--primary); }
+
+    /* UPI Apps row */
+    .upi-label {
+        text-align: center;
+        font-size: 0.8rem; color: var(--text-muted); font-weight: 500;
+        margin-bottom: 12px; letter-spacing: 0.5px; text-transform: uppercase;
+    }
+    .upi-apps {
+        display: flex; justify-content: center; align-items: center;
+        gap: 16px; margin-bottom: 25px;
+    }
+    .upi-app {
+        display: flex; flex-direction: column; align-items: center; gap: 5px;
+    }
+    .upi-logo-wrap {
+        width: 48px; height: 48px;
+        background: #f8f9fa;
+        border-radius: 14px;
+        border: 1.5px solid #eee;
+        display: flex; align-items: center; justify-content: center;
+        padding: 6px;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .upi-logo-wrap:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.1); }
+    .upi-logo-wrap img { width: 100%; height: 100%; object-fit: contain; }
+    .upi-app span { font-size: 0.72rem; color: var(--text-muted); font-weight: 500; }
+
+    /* Divider */
+    .divider {
+        display: flex; align-items: center; gap: 12px;
+        margin-bottom: 20px;
+    }
+    .divider hr { flex: 1; border: none; border-top: 1px solid var(--border); }
+    .divider span { font-size: 0.8rem; color: var(--text-muted); white-space: nowrap; }
+
+    /* Confirm button */
+    .btn-confirm {
+        width: 100%;
+        padding: 16px;
+        border: none;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #FF4757, #ff6b35);
+        color: white;
+        font-size: 1.05rem;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: inherit;
+        display: flex; align-items: center; justify-content: center; gap: 10px;
+        box-shadow: 0 8px 24px rgba(255,71,87,0.35);
+        transition: all 0.3s ease;
+        letter-spacing: 0.3px;
+        margin-bottom: 14px;
+    }
+    .btn-confirm:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 30px rgba(255,71,87,0.45);
+    }
+    .btn-confirm:active { transform: translateY(0); }
+
+    /* Secure note */
+    .secure-note {
+        display: flex; align-items: center; justify-content: center;
+        gap: 6px;
+        font-size: 0.8rem; color: var(--text-muted);
+    }
+    .secure-dot {
+        width: 8px; height: 8px;
+        background: var(--green);
+        border-radius: 50%;
+        animation: pulse-dot 2s ease infinite;
+    }
+    @keyframes pulse-dot {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.6; transform: scale(1.3); }
+    }
+
+    @media (max-width: 600px) {
+        .qr-card { border-radius: 20px; max-width: 95%; }
+        .nav-links { display: none; }
+    }
+</style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar">
+    <a href="welcome.html#home" class="logo">
+        <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <path d="M16 10a4 4 0 0 1-8 0"></path>
+        </svg>
+        Crave Cart
+    </a>
+    <ul class="nav-links">
+        <li><a href="welcome.html#home">Home</a></li>
+        <li><a href="welcome.html#about">About</a></li>
+        <li><a href="welcome.html#crave-list">Crave List</a></li>
+        <li><a href="welcome.html#contact">Contact</a></li>
+    </ul>
+</nav>
+
+<!-- QR Card -->
+<div class="qr-card">
+
+    <!-- Header Strip -->
+    <div class="card-header">
+        <div class="header-icon">🍽️</div>
+        <h1>Scan to Pay</h1>
+        <p>Use any UPI app to complete your order</p>
+    </div>
+
+    <!-- Body -->
+    <div class="card-body">
+
+        <!-- QR Code -->
+        <div class="qr-wrapper">
+            <span class="corner-tr"></span>
+            <span class="corner-bl"></span>
+            <div id="qrcode">
+                <div class="scanner-line"></div>
+            </div>
+        </div>
+
+        <!-- Timer -->
+        <div class="timer-row">
+            <div class="timer-badge" id="timerBadge">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                QR expires in &nbsp;<span id="countdown">05:00</span>
+            </div>
+        </div>
+
+        <!-- UPI Apps -->
+        <p class="upi-label">Pay using</p>
+        <div class="upi-apps">
+            <div class="upi-app">
+                <div class="upi-logo-wrap">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/4/42/Paytm_logo.png" alt="Paytm">
+                </div>
+                <span>Paytm</span>
+            </div>
+            <div class="upi-app">
+                <div class="upi-logo-wrap">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/7/71/PhonePe_Logo.svg" alt="PhonePe">
+                </div>
+                <span>PhonePe</span>
+            </div>
+            <div class="upi-app">
+                <div class="upi-logo-wrap">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg" alt="GPay">
+                </div>
+                <span>GPay</span>
+            </div>
+            <div class="upi-app">
+                <div class="upi-logo-wrap" style="background:#fff;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/UPI-Logo-vector.svg/1200px-UPI-Logo-vector.svg.png" alt="UPI">
+                </div>
+                <span>Any UPI</span>
+            </div>
+        </div>
+
+        <div class="divider">
+            <hr><span>or click below after paying</span><hr>
+        </div>
+
+        <!-- Confirm Button -->
+        <button class="btn-confirm" onclick="window.location.href='thankyou.html'">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            Confirm Payment
+        </button>
+
+        <!-- Secure note -->
+        <div class="secure-note">
+            <div class="secure-dot"></div>
+            256-bit encrypted &amp; 100% secure payment
+        </div>
+
+    </div><!-- /card-body -->
+</div><!-- /qr-card -->
+
+<script>
+    // Generate QR code
+    new QRCode(document.getElementById("qrcode"), {
+        text: "upi://pay?pa=cravecart@upi&pn=Crave%20Cart&cu=INR",
+        width: 210,
+        height: 210,
+        colorDark: "#1a1a2e",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+    });
+
+    // Live countdown timer
+    let totalSeconds = 5 * 60;
+    const countdownEl = document.getElementById('countdown');
+    const badgeEl = document.getElementById('timerBadge');
+
+    const timer = setInterval(() => {
+        totalSeconds--;
+        if (totalSeconds <= 0) {
+            clearInterval(timer);
+            countdownEl.textContent = '00:00';
+            badgeEl.style.background = '#fff8f8';
+            badgeEl.style.borderColor = '#ffd6da';
+            badgeEl.style.color = '#FF4757';
+            return;
+        }
+        const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+        const s = (totalSeconds % 60).toString().padStart(2, '0');
+        countdownEl.textContent = `${m}:${s}`;
+
+        // Turn red in last 60 seconds
+        if (totalSeconds <= 60) {
+            badgeEl.classList.add('urgent');
+        }
+    }, 1000);
+</script>
+
+</body>
+</html>
